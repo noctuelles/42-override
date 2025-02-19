@@ -1,10 +1,10 @@
-s = 'Q}|u`sfg~sf{}|a3'
-o = 'Congratulations!'
+cyphertext = 'Q}|u`sfg~sf{}|a3'
+plaintext = 'Congratulations!'
 
 xor_values = []
 
-for i in range(len(s)):
-    xor_value = ord(s[i]) ^ ord(o[i])
+for i in range(len(cyphertext)):
+    xor_value = ord(cyphertext[i]) ^ ord(plaintext[i])
     xor_values.append(xor_value)
 
 print(xor_values)
