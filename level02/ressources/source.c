@@ -1,34 +1,30 @@
 #include <stdio.h>
 
-int main(int argc, const char **argv, const char **envp)
+int main()
 {
-  char s2[96]; // [rsp+10h] [rbp-110h] BYREF
-  int v5; // [rsp+70h] [rbp-B0h]
-  char ptr[48]; // [rsp+80h] [rbp-A0h] BYREF
-  char s[96]; // [rsp+B0h] [rbp-70h] BYREF
-  int v8; // [rsp+110h] [rbp-10h]
-  int v9; // [rsp+114h] [rbp-Ch]
-  FILE *stream; // [rsp+118h] [rbp-8h]
+  char password[96];
+  char pass_buffer[48];
+  char username[96];
+  int nread;
+  FILE *stream;
 
-  memset(s, 0, sizeof(s));
-  v8 = 0;
-  memset(ptr, 0, 41);
-  memset(s2, 0, sizeof(s2));
-  v5 = 0;
+  memset(username, 0, sizeof(username));
+  memset(pass_buffer, 0, 41);
+  memset(password, 0, sizeof(password));
   stream = 0LL;
-  v9 = 0;
+  nread = 0;
   stream = fopen("/home/users/level03/.pass", "r");
-  if ( !stream )
+  if (!stream)
   {
-    fwrite("ERROR: failed to open password file\n", 1uLL, 0x24uLL, stderr);
+    fwrite("ERROR: failed to open password file\n", 1, 36, stderr);
     exit(1);
   }
-  v9 = fread(ptr, 1uLL, 0x29uLL, stream);
-  ptr[strcspn(ptr, "\n")] = 0;
-  if ( v9 != 41 )
+  nread = fread(pass_buffer, 1, 41, stream);
+  pass_buffer[strcspn(pass_buffer, "\n")] = 0;
+  if (nread != 41)
   {
-    fwrite("ERROR: failed to read password file\n", 1uLL, 0x24uLL, stderr);
-    fwrite("ERROR: failed to read password file\n", 1uLL, 0x24uLL, stderr);
+    fwrite("ERROR: failed to read password file\n", 1, 36, stderr);
+    fwrite("ERROR: failed to read password file\n", 1, 36, stderr);
     exit(1);
   }
   fclose(stream);
@@ -37,19 +33,19 @@ int main(int argc, const char **argv, const char **envp)
   puts("| You must login to access this system. |");
   puts("\\**************************************/");
   printf("--[ Username: ");
-  fgets(s, 100, stdin);
-  s[strcspn(s, "\n")] = 0;
+  fgets(username, 100, stdin);
+  username[strcspn(username, "\n")] = 0;
   printf("--[ Password: ");
-  fgets(s2, 100, stdin);
-  s2[strcspn(s2, "\n")] = 0;
+  fgets(password, 100, stdin);
+  password[strcspn(password, "\n")] = 0;
   puts("*****************************************");
-  if ( strncmp(ptr, s2, 0x29uLL) )
+  if (strncmp(pass_buffer, password, 0x29uLL))
   {
-    printf(s);
+    printf(username);
     puts(" does not have access!");
     exit(1);
   }
-  printf("Greetings, %s!\n", s);
+  printf("Greetings, %s!\n", username);
   system("/bin/sh");
   return 0;
 }
