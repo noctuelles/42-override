@@ -32,7 +32,7 @@ static int store_number(uint32_t *array)
     number = get_unum();
     printf(" Index: ");
     index = get_unum();
-    if ((index % 3 == 0) || number >> 24 == 0xB7)
+    if ((index % 3 == 0) || number & 0xFF000000 == 0xB7)
     {
         puts(" *** ERROR! ***");
         puts("   This index is reserved for wil!");
