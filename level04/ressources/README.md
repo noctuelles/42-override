@@ -1,5 +1,66 @@
 # level04
 
+## Reconstructed C code from assembly
+
+```c
+#define X86_ORIG_EAX 44
+#define X86_EXECVE_SYSNO 11
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/ptrace.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <unistd.h>
+#include <string.h>
+#include <linux/fcntl.h>
+
+int main(int argc, char **argv, char **envp)
+{
+    int stat_loc;
+    char buffer[128];
+    int child_eax;
+    pid_t pid;
+
+    pid = fork();
+    memset(buffer, 0, sizeof(buffer));
+    child_eax = 0;
+    stat_loc = 0;
+
+    if (pid)
+    {
+        /* Parent */
+
+        do
+        {
+            wait(&stat_loc);
+            if (WIFEXITED(stat_loc) || WIFSIGNALED(stat_loc))
+            {
+                puts("child is exiting...");
+                return 0;
+            }
+            child_eax = ptrace(PTRACE_PEEKUSER, pid, X86_ORIG_EAX, 0);
+        } while (child_eax != X86_EXECVE_SYSNO);
+        puts("no exec() for you");
+        kill(pid, SIGKILL);
+    }
+    else
+    {
+        /* Child */
+
+        prctl(PR_SET_PDEATHSIG, SIGHUP);
+        ptrace(PTRACE_TRACEME, 0, 0, 0);
+        puts("Give me some shellcode, k");
+        gets(buffer);
+    }
+
+    return 0;
+}
+```
+## Exploit
+
+
 In this program, a new child process is spawn using `fork()`. The parent then proceed to `wait` the child. The use `ptrace(PTRACE_ME)`, which, according to the manual : 
 
 >    PTRACE_TRACEME
@@ -7,16 +68,16 @@ In this program, a new child process is spawn using `fork()`. The parent then pr
               execve(2)  by  this process will cause a SIGTRAP to be sent to it, giving the parent a chance to gain control before the new program begins execution.  A process probably shouldn't make this request if its parent isn't
               expecting to trace it.  (pid, addr, and data are ignored.)
 
-The child has an obvious buffer-overflow vulnerability because of the usage of `gets`, granting us **saved-eip** overwrite. The NX bit of the executable is disabled, which mean we can execute arbitrary code in the stack.
+The child has an obvious buffer-overflow vulnerability because of the usage of `gets`, granting us **saved-eip** overwrite. The **NX** bit of the executable is disabled, which mean we can execute arbitrary code in the stack.
 
-Whenever the child will try to `execve`, a `SIGTRAP` will wake up the parent. Right after, the parent proceed to get the value of the `eax` register in the child process, and if it contains the value `11`, which correspond to the sysno for `execve` on x86 Linux, the parent immediately send a `SIGKILL` to the child. This prevent us from launching a shellcode that try to use `execve`. 
+Whenever the child will try to `execve`, a `SIGTRAP` will wake up the parent. Right after, the parent proceed to get the value of the `eax` register in the child process, and if it contains the value `11`, which correspond to the sysno for `execve` on x86 Linux, the parent immediately send a `SIGKILL` to the child. This prevent us from launching a shellcode that try to use the `execve` syscall. 
 
-My initial approach was to craft a shellcode that use `execveat` syscall instead. Unfortunatly, the Linux kernel that the host has is too old and does not implement `execveat`, returning **errno** `ENOSYS` in the `eax` register with `int 0x80`.
+My initial approach was to craft a shellcode that use `execveat` syscall instead. Unfortunatly, the Linux kernel that the host has is too old and does not implement the syscall, returning **errno** `ENOSYS` in the `eax` register after the `int 0x80`.
 
 ## ret2libc
 
-Instead of crafting a shellcode, we can take advantage of the fact that the libc is loaded into memory and has already some really usefull fuction like `system` for attackers.
-We can overwrite the **saved-eip** with the address of the `system` function, and set-up the stack so the first argument is a pointer to a `/bin/sh` string. With **GDB**, we can find these easily.
+Instead of crafting a shellcode, we can take advantage of the fact that the `libc` is loaded into memory and has already some really usefull fuction like `system` for attackers.
+We can overwrite the **saved-eip** with the address of the `system` function, and set-up the stack so the first argument is a pointer to a `/bin/sh` string. With **GDB**, we can find these easily. Also **ASLR** is disabled so the `libc` will be loaded in memory at the exact same address for each run.
 
 ```
 (gdb) p system

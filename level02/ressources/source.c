@@ -2,9 +2,9 @@
 
 int main()
 {
-  char password[96];
-  char pass_buffer[48];
-  char username[96];
+  char password[100];
+  char pass_buffer[42];
+  char username[100];
   int nread;
   FILE *stream;
 
@@ -24,7 +24,6 @@ int main()
   if (nread != 41)
   {
     fwrite("ERROR: failed to read password file\n", 1, 36, stderr);
-    fwrite("ERROR: failed to read password file\n", 1, 36, stderr);
     exit(1);
   }
   fclose(stream);
@@ -39,7 +38,7 @@ int main()
   fgets(password, 100, stdin);
   password[strcspn(password, "\n")] = 0;
   puts("*****************************************");
-  if (strncmp(pass_buffer, password, 0x29uLL))
+  if (strncmp(pass_buffer, password, 41))
   {
     printf(username);
     puts(" does not have access!");
